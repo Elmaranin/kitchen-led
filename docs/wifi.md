@@ -29,4 +29,16 @@ Fallback AP mode remains active until reboot. Rebooting starts a new station con
 The firmware update page is available over either station Wi-Fi or the fallback AP.
 A page for changing Wi-Fi credentials is not implemented yet.
 
+## Local hostname
+
+The controller advertises `http://kitchen-led.local/` through mDNS and publishes an `_http._tcp` service on port 80.
+The responder follows station and access-point network events, including reconnects and fallback to AP mode.
+Use **Kitchen LED controller → Wi-Fi → mDNS hostname** in `menuconfig` to change the name.
+Enter the name without `.local`. Use letters, digits, and internal hyphens, with a maximum length of 63 characters.
+Choose a different name for each controller on the network.
+
+Your computer or phone must be on the same local network, and the network must allow multicast traffic.
+If mDNS is unavailable, use the station IP from the serial log or `192.168.4.1` while connected to the fallback AP.
+An mDNS setup failure is logged and does not prevent Wi-Fi or IP-based access.
+
 [Project overview](../README.md)

@@ -1,6 +1,6 @@
 # Firmware API
 
-Call the API from one task after `kitchen_led_init()` succeeds.
+Call the API after `kitchen_led_init()` succeeds. Keep LED buffer updates and frame transmission in one task.
 Line and pixel indices start at zero. Colors use RGB values from 0 to 255.
 Pixel changes are buffered until `kitchen_led_show()` sends them to the LEDs.
 
@@ -12,7 +12,10 @@ ESP_ERROR_CHECK(kitchen_relay_set(true));
 ```
 
 The default application initializes the outputs, starts Wi-Fi, and serves the firmware update page.
-It does not accept external LED and relay control commands yet.
+The Controller tab accepts relay commands through the [HTTP API](controller.md#http-api).
+`kitchen_relay_is_on()` returns the last successfully commanded relay state.
+`kitchen_relay_set()` drives the relay on GPIO14 and the active-low blue LED on GPIO16 together.
+The HTTP server handles relay writes in one task. Keep relay writes serialized when adding other control sources.
 
 ## LED strip test
 
@@ -22,7 +25,7 @@ The normal project defaults remain 15 LEDs per line; the test uses the configure
 
 The test runs automatically after initialization and repeats a red, green, and blue chase.
 It moves one pixel every 100 ms with a short fading tail and a peak channel value of 16 out of 255.
-The other lines stay black and the relay stays off.
+The other LED lines stay black. The effect does not change the relay.
 Wi-Fi and OTA remain available during the effect.
 Disable the test option and rebuild to return to normal startup behavior.
 

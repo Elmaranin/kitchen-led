@@ -26,6 +26,7 @@ static uint8_t pixels[KITCHEN_LED_LINES][MAX_LEDS][3];
 static uint32_t zero_masks[MAX_LEDS * 24];
 static uint32_t output_mask;
 static bool initialized;
+static bool relay_on;
 
 void ws2812_write_parallel(const uint32_t *masks, size_t bits, uint32_t pins);
 
@@ -38,7 +39,7 @@ esp_err_t kitchen_led_init(void)
     uint32_t mask = 0;
     for (size_t line = 0; line < KITCHEN_LED_LINES; ++line) {
         unsigned pin = pins[line];
-        if (pin != 4 && pin != 5 && pin != 12 && pin != 13 && pin != 14) {
+        if (pin != 4 && pin != 5 && pin != 12 && pin != 13) {
             return ESP_ERR_INVALID_ARG;
         }
         if (mask & (1U << pin)) {
@@ -52,14 +53,31 @@ esp_err_t kitchen_led_init(void)
         .pin_bit_mask = 1ULL << KITCHEN_RELAY_GPIO,
         .mode = GPIO_MODE_OUTPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE,
     };
     esp_err_t err = gpio_set_level(KITCHEN_RELAY_GPIO, 0);
     if (err != ESP_OK) {
         return err;
     }
+    relay_on = false;
     err = gpio_config(&relay);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    gpio_config_t indicator = {
+        .pin_bit_mask = 1ULL << BLUE_LED,
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    err = gpio_set_level(BLUE_LED, 1);
+    if (err != ESP_OK) {
+        return err;
+    }
+    err = gpio_config(&indicator);
     if (err != ESP_OK) {
         return err;
     }
@@ -149,5 +167,15 @@ esp_err_t kitchen_relay_set(bool on)
     if (!initialized) {
         return ESP_ERR_INVALID_STATE;
     }
-    return gpio_set_level(KITCHEN_RELAY_GPIO, on ? 1 : 0);
+    esp_err_t err = gpio_set_level(KITCHEN_RELAY_GPIO, on ? 1 : 0);
+    if (err == ESP_OK) {
+        relay_on = on;
+        err = gpio_set_level(BLUE_LED, on ? 0 : 1);
+    }
+    return err;
+}
+
+bool kitchen_relay_is_on(void)
+{
+    return relay_on;
 }

@@ -12,6 +12,9 @@ cc -std=c11 -Wall -Wextra -Werror -I main main/wifi_policy.c tests/wifi_policy_t
 These tests cover retry spacing, connection timeouts, reconnects, and timer rollover.
 Run the local configuration tests with `python3 -m unittest discover -s tests -p 'test_*.py'`.
 These tests check secret preservation, credential validation, and configuration escaping.
+They also compile host tests for relay commands and the GPIO driver using hardware stubs.
+The relay tests cover default-off startup, explicit on/off commands, invalid payloads, and GPIO write failures.
+They also check the blue LED's inverse GPIO levels and reject LED-line configurations that use the relay pin.
 The firmware build checks the SDK integration. Wi-Fi and OTA also need testing on the board.
 
 ## Hardware verification

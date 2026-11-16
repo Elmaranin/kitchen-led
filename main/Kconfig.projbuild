@@ -24,6 +24,13 @@ config KITCHEN_WIFI_TIMEOUT_SECONDS
         The controller starts the fallback AP if it cannot obtain an IP address
         within this interval. The same timeout applies after a connection loss.
 
+config KITCHEN_MDNS_HOSTNAME
+    string "mDNS hostname"
+    default "kitchen-led"
+    help
+        Use a hostname without the .local suffix, up to 63 characters.
+        Use letters, digits, and internal hyphens. Each controller needs a unique name.
+
 config KITCHEN_AP_PASSWORD
     string "Fallback AP password"
     default "kitchen-led-setup"
@@ -39,27 +46,27 @@ config KITCHEN_TEST_EFFECT
     help
         The controller runs a dim red, green, and blue chase on line 2.
         Set the line 2 GPIO to 5 and its LED count to match the test strip.
-        The other LED lines stay black and the relay stays off.
+        The effect leaves the other LED lines black and does not control the relay.
 
 config KITCHEN_LINE_1_GPIO
     int "Line 1 GPIO"
     default 4
-    range 4 14
+    range 4 13
 
 config KITCHEN_LINE_2_GPIO
     int "Line 2 GPIO"
     default 5
-    range 4 14
+    range 4 13
 
 config KITCHEN_LINE_3_GPIO
     int "Line 3 GPIO"
     default 12
-    range 4 14
+    range 4 13
 
 config KITCHEN_LINE_4_GPIO
     int "Line 4 GPIO"
     default 13
-    range 4 14
+    range 4 13
 
 config KITCHEN_LINE_1_LEDS
     int "Line 1 LED count"

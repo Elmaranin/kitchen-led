@@ -1,39 +1,177 @@
 <!doctype html>
 <html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kitchen LED firmware</title>
+<title>Kitchen controller</title>
 <link rel="icon" href="data:,">
 <style>
-body{font:17px system-ui,sans-serif;max-width:36rem;margin:3rem auto;padding:0 1.2rem;color:#202820;background:#f6f8f4}
-form{display:grid;gap:1rem;background:white;padding:1.5rem;border:1px solid #d5ddd0;border-radius:12px}
-label{display:grid;gap:.4rem}input,button{font:inherit;padding:.65rem}button{background:#285c35;color:white;border:0;border-radius:6px;cursor:pointer}
-button:disabled{opacity:.5;cursor:wait}#message{white-space:pre-wrap;overflow-wrap:anywhere}
+:root{font-family:system-ui,sans-serif;color:#1d2b23;background:#f3f5f1;color-scheme:light}
+*{box-sizing:border-box}body{max-width:48rem;margin:0 auto;padding:3rem 1.25rem;font-size:16px;line-height:1.5}
+header{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:2rem}
+h1{font-size:1.8rem;line-height:1.2;margin:0 0 .4rem;letter-spacing:-.04em}h2{font-size:1.15rem;margin:0}
+p{margin:.4rem 0 0}.muted{color:#647168;font-size:.9rem}.connection{font-size:.8rem;white-space:nowrap;padding:.35rem .7rem;border-radius:2rem;background:#e7ebe5;color:#58645c}
+.connection[data-state=connected]{background:#e2efdf;color:#315d36}
+.tabs{display:flex;gap:.4rem;border-bottom:1px solid #d9e0d5;margin-bottom:1.5rem;padding-bottom:.7rem}
+button,input{font:inherit}button{cursor:pointer}.tab{border:0;border-radius:.5rem;padding:.6rem 1.2rem;background:transparent;color:#647168;font-weight:600}
+.tab[aria-selected=true]{background:#e1ebdd;color:#274d2e}.tab:hover{background:#e8ede5}
+button:focus-visible,input:focus-visible{outline:3px solid #68a66d;outline-offset:4px}
+.card{background:#fff;border:1px solid #dbe2d7;border-radius:1rem;padding:1.5rem;box-shadow:0 4px 16px #243d2410}
+.relay-row{display:flex;align-items:center;justify-content:space-between;gap:1.5rem}.relay-label{display:flex;align-items:center;gap:.6rem}
+.state{font-size:.8rem;color:#637166;background:#eef1eb;padding:.1rem .55rem;border-radius:1rem}.state[data-on=true]{color:#315d36;background:#e2efdf}
+.switch{position:relative;flex-shrink:0;width:64px;height:36px;border:0;border-radius:30px;background:#c9d2c4;padding:4px;transition:background .15s}
+.thumb{display:block;width:28px;height:28px;border-radius:50%;background:white;box-shadow:0 1px 4px #0003;transition:transform .15s}
+.switch[aria-checked=true]{background:#386b40}.switch[aria-checked=true] .thumb{transform:translateX(28px)}
+button:disabled{cursor:not-allowed;opacity:.5}form{display:grid;gap:1.1rem;margin-top:1.4rem}label{display:grid;gap:.4rem;font-size:.9rem;font-weight:600}
+input{min-width:0;width:100%;padding:.65rem;border:1px solid #ccd6c7;border-radius:.45rem;background:#fcfdfb;font-weight:400}
+.primary{justify-self:start;background:#315f39;color:white;border:0;border-radius:.5rem;padding:.7rem 1rem;font-weight:600}
+.message{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.9rem;color:#435748}.message:not(:empty){margin-top:1rem}
+[hidden]{display:none!important}footer{margin-top:1.5rem}@media(max-width:450px){body{padding-top:1.75rem}header{align-items:flex-start}.connection{margin-top:.15rem}.card{padding:1.2rem}}
+@media(prefers-reduced-motion:reduce){.switch,.thumb{transition:none}}
 </style>
-<h1>Kitchen LED firmware</h1>
-<p id="status">Reading controller status…</p>
+</head>
+<body>
+<header>
+<div><h1>Kitchen controller</h1><p class="muted">Lighting and device controls</p></div>
+<span id="connection" class="connection" role="status">Connecting…</span>
+</header>
+<div class="tabs" role="tablist" aria-label="Device sections">
+<button class="tab" id="controller-tab" role="tab" aria-selected="true" aria-controls="controller-panel" tabindex="0">Controller</button>
+<button class="tab" id="ota-tab" role="tab" aria-selected="false" aria-controls="ota-panel" tabindex="-1">OTA</button>
+</div>
+<section id="controller-panel" role="tabpanel" aria-labelledby="controller-tab">
+<div class="card">
+<div class="relay-row">
+<div><div class="relay-label"><h2>Relay</h2><span id="relay-state" class="state" data-on="false">Off</span></div><p class="muted">Omron G3MB-202P · Max 300 W</p><p class="muted">Starts off whenever the controller boots.</p></div>
+<button id="relay-switch" class="switch" type="button" role="switch" aria-label="Relay power" aria-checked="false" disabled><span class="thumb"></span></button>
+</div>
+<p id="controller-message" class="message" role="status"></p>
+</div>
+</section>
+<section id="ota-panel" role="tabpanel" aria-labelledby="ota-tab" hidden>
+<div class="card">
+<h2>Firmware update</h2>
+<p id="status" class="muted">Reading controller status…</p>
 <form id="update">
 <label>OTA access token<input id="token" type="password" autocomplete="off" required></label>
 <label>Firmware file<input id="firmware" type="file" accept=".bin" required></label>
-<button id="submit">Upload and restart</button>
+<button class="primary" id="submit" disabled>Upload and restart</button>
 </form>
-<p id="message" role="status"></p>
-<p>Keep the controller powered during the update. Reconnect to its Wi-Fi if it starts the fallback access point.</p>
+<p id="message" class="message" role="status"></p>
+</div>
+<footer class="muted">Keep the controller powered during the update. Reconnect to its Wi-Fi if it starts the fallback access point.</footer>
+</section>
 <script>
 const statusText = document.getElementById('status');
+const connection = document.getElementById('connection');
 const message = document.getElementById('message');
+const controllerMessage = document.getElementById('controller-message');
 const button = document.getElementById('submit');
+const relaySwitch = document.getElementById('relay-switch');
+const relayState = document.getElementById('relay-state');
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+let online = false;
+let relayOn = false;
+let relayBusy = false;
+let updating = false;
+let rebootPending = false;
+
+function selectTab(tab, focus = false) {
+  for (const item of tabs) {
+    const selected = item === tab;
+    item.setAttribute('aria-selected', String(selected));
+    item.tabIndex = selected ? 0 : -1;
+    document.getElementById(item.getAttribute('aria-controls')).hidden = !selected;
+  }
+  history.replaceState(null, '', tab.id === 'ota-tab' ? '#ota' : '#controller');
+  if (focus) tab.focus();
+}
+for (const tab of tabs) {
+  tab.addEventListener('click', () => selectTab(tab));
+  tab.addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    let index = tabs.indexOf(tab);
+    if (event.key === 'Home') index = 0;
+    else if (event.key === 'End') index = tabs.length - 1;
+    else index = (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    selectTab(tabs[index], true);
+  });
+}
+if (location.hash === '#ota') selectTab(document.getElementById('ota-tab'));
+
+function updateAvailability() {
+  relaySwitch.disabled = !online || relayBusy || updating || rebootPending;
+  button.disabled = !online || relayBusy || updating || rebootPending;
+  connection.textContent = updating || rebootPending ? 'Updating…' : online ? 'Connected' : 'Offline';
+  connection.dataset.state = online ? 'connected' : 'offline';
+}
+function showRelay(on) {
+  relayOn = on;
+  relaySwitch.setAttribute('aria-checked', String(on));
+  relayState.textContent = on ? 'On' : 'Off';
+  relayState.dataset.on = String(on);
+}
+async function requestJson(path, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(path, {...options, cache: 'no-store', signal: controller.signal});
+    if (!response.ok) throw new Error(await response.text() || 'The controller request failed.');
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 async function refresh() {
-  const response = await fetch('/status', {cache: 'no-store'});
-  if (!response.ok) throw new Error('Could not read controller status.');
-  const status = await response.json();
+  const status = await requestJson('/status');
+  if (typeof status.relay_on !== 'boolean') throw new Error('The device firmware does not support relay controls.');
+  const wasOnline = online;
+  online = true;
+  rebootPending = status.reboot_pending;
+  showRelay(status.relay_on);
   statusText.textContent = `Version ${status.version} · Firmware slot ${status.slot}`;
+  if (!wasOnline) controllerMessage.textContent = '';
+  updateAvailability();
   return status;
 }
-refresh().catch(error => { statusText.textContent = error.message; });
+function showConnectionError() {
+  online = false;
+  controllerMessage.textContent = 'Controller unavailable. Controls will reconnect automatically.';
+  updateAvailability();
+}
+refresh().catch(showConnectionError);
+setInterval(() => {
+  if (!updating && !relayBusy) refresh().catch(showConnectionError);
+}, 5000);
+
+relaySwitch.addEventListener('click', async () => {
+  if (relaySwitch.disabled) return;
+  relayBusy = true;
+  controllerMessage.textContent = '';
+  updateAvailability();
+  try {
+    const result = await requestJson('/relay', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(!relayOn)
+    });
+    if (typeof result.on !== 'boolean') throw new Error('Could not confirm the relay state.');
+    showRelay(result.on);
+  } catch (error) {
+    try { await refresh(); } catch (_) { online = false; }
+    controllerMessage.textContent = 'Could not change the relay. Check the connection and try again.';
+  } finally {
+    relayBusy = false;
+    updateAvailability();
+  }
+});
+
 document.getElementById('update').addEventListener('submit', async event => {
   event.preventDefault();
-  button.disabled = true;
+  if (button.disabled) return;
+  updating = true;
+  updateAvailability();
   try {
     const before = await refresh();
     const file = document.getElementById('firmware').files[0];
@@ -56,7 +194,8 @@ document.getElementById('update').addEventListener('submit', async event => {
     if (!response.ok) throw new Error(result);
     document.getElementById('token').value = '';
     message.textContent = result + '\nWaiting for the controller to restart…';
-    for (let attempt = 0; attempt < 45; attempt++) {
+    const deadline = Date.now() + 90000;
+    while (Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 2000));
       try {
         const after = await refresh();
@@ -72,8 +211,10 @@ document.getElementById('update').addEventListener('submit', async event => {
       ? 'The upload timed out. Reconnect and check the controller status before trying again.'
       : error.message;
   } finally {
-    button.disabled = false;
+    updating = false;
+    updateAvailability();
   }
 });
 </script>
+</body>
 </html>

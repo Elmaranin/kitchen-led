@@ -69,7 +69,7 @@
             "id": "otaHost",
             "type": "promptString",
             "description": "Controller IP address or hostname",
-            "default": "192.168.1.75"
+            "default": "kitchen-led.local"
         }
     ]
 }

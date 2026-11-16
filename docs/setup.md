@@ -44,7 +44,8 @@ idf.py -B build/verified -p /dev/cu.YOUR_SERIAL_PORT -b 57600 flash monitor
 ```
 
 Set the pins and LED counts under **Kitchen LED controller** in `menuconfig`.
-Each line supports 1–64 LEDs. Use four distinct pins from GPIO4, GPIO5, GPIO12, GPIO13, and GPIO14.
+Each line supports 1–64 LEDs. Use four distinct pins from GPIO4, GPIO5, GPIO12, and GPIO13.
+GPIO14 is reserved for the relay, and GPIO16 is reserved for the blue LED indicator.
 The application rejects flash pins and duplicate pins during initialization.
 Keep the CPU at 80 MHz and power management disabled, as set in `sdkconfig.defaults`.
 The connected USB serial adapter passed write verification at 57600 baud; faster transfers produced corruption during testing.
@@ -57,6 +58,10 @@ The workspace includes three tasks in [`.vscode/tasks.json`](../.vscode/tasks.js
 - **Build firmware** builds `build/verified/kitchen_led.bin`. Press **Cmd+Shift+B** on macOS to run it.
 - **Flash firmware (USB)** builds first, then prompts for the serial port and flashes at 57600 baud.
 - **Flash firmware (OTA)** prompts for the controller address, then builds and uploads in one terminal using the saved OTA token.
+
+The OTA address defaults to `kitchen-led.local`.
+For the first update that enables mDNS, replace it with the device's current IP address.
+If you configure another hostname, enter that name with the `.local` suffix instead.
 
 Run either flash task through **Terminal → Run Task**.
 The OTA task prints **Step 1/2: Building firmware** and **Step 2/2: Uploading firmware over Wi-Fi** in the same terminal.

@@ -14,6 +14,11 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 #include "tcpip_adapter.h"
+#include "mdns.h"
+
+#ifndef CONFIG_ENABLE_MDNS
+#error "Enable mDNS in the SDK component configuration to build this project."
+#endif
 
 #define CONNECTED_BIT BIT0
 #define RETRY_READY_BIT BIT1
@@ -25,10 +30,35 @@ _Static_assert(sizeof(CONFIG_KITCHEN_WIFI_PASSWORD) - 1 <= 64,
 _Static_assert(sizeof(CONFIG_KITCHEN_AP_PASSWORD) - 1 >= 8 &&
                sizeof(CONFIG_KITCHEN_AP_PASSWORD) - 1 <= 63,
                "The fallback AP password must contain 8 to 63 bytes.");
+_Static_assert(sizeof(CONFIG_KITCHEN_MDNS_HOSTNAME) > 1 &&
+               sizeof(CONFIG_KITCHEN_MDNS_HOSTNAME) <= 64,
+               "The mDNS hostname must contain 1 to 63 bytes.");
 
 static const char *TAG = "network";
 static EventGroupHandle_t wifi_events;
 static bool started;
+
+static esp_err_t start_mdns(void)
+{
+    esp_err_t err = mdns_init();
+    if (err != ESP_OK) {
+        return err;
+    }
+    err = mdns_hostname_set(CONFIG_KITCHEN_MDNS_HOSTNAME);
+    if (err == ESP_OK) {
+        err = mdns_instance_name_set("Kitchen LED controller");
+    }
+    if (err == ESP_OK) {
+        mdns_txt_item_t txt[] = {{"path", "/"}};
+        err = mdns_service_add(NULL, "_http", "_tcp", 80, txt, 1);
+    }
+    if (err != ESP_OK) {
+        mdns_free();
+        return err;
+    }
+    ESP_LOGI(TAG, "mDNS configured: http://%s.local/", CONFIG_KITCHEN_MDNS_HOSTNAME);
+    return ESP_OK;
+}
 
 static void network_event(void *arg, esp_event_base_t base, int32_t id, void *data)
 {
@@ -158,6 +188,11 @@ esp_err_t network_start(void)
     err = esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, network_event, NULL);
     if (err != ESP_OK) {
         return err;
+    }
+
+    err = start_mdns();
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "mDNS setup failed: %s. The IP address remains available.", esp_err_to_name(err));
     }
 
     if (CONFIG_KITCHEN_WIFI_SSID[0] == '\0') {

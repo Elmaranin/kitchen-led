@@ -1,8 +1,11 @@
 #include "ota_server.h"
 #include "ota_secret.h"
+#include "kitchen_led.h"
+#include "relay_command.h"
 
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <errno.h>
 
 #include "esp_http_server.h"
@@ -66,9 +69,45 @@ static esp_err_t status_handler(httpd_req_t *request)
 
     char response[192];
     snprintf(response, sizeof(response),
-             "{\"version\":\"%.31s\",\"slot\":\"%.15s\",\"free_heap\":%u,\"reboot_pending\":%s}",
+             "{\"version\":\"%.31s\",\"slot\":\"%.15s\",\"free_heap\":%u,\"reboot_pending\":%s,\"relay_on\":%s}",
              description->version, running->label, (unsigned)esp_get_free_heap_size(),
-             reboot_pending ? "true" : "false");
+             reboot_pending ? "true" : "false", kitchen_relay_is_on() ? "true" : "false");
+    httpd_resp_set_type(request, "application/json");
+    httpd_resp_set_hdr(request, "Cache-Control", "no-store");
+    return httpd_resp_send(request, response, strlen(response));
+}
+
+static esp_err_t relay_handler(httpd_req_t *request)
+{
+    if (reboot_pending) {
+        return reject(request, "409 Conflict", "The controller is restarting after a firmware update.");
+    }
+    char content_type[48];
+    if (httpd_req_get_hdr_value_str(request, "Content-Type", content_type, sizeof(content_type)) != ESP_OK ||
+        strncasecmp(content_type, "application/json", 16) != 0 ||
+        (content_type[16] != '\0' && content_type[16] != ';')) {
+        return reject(request, "415 Unsupported Media Type", "Relay commands require application/json.");
+    }
+    char body[16];
+    if (request->content_len == 0 || request->content_len > sizeof(body)) {
+        return reject(request, "400 Bad Request", "Send true or false to set the relay state.");
+    }
+    size_t received = 0;
+    while (received < request->content_len) {
+        int count = httpd_req_recv(request, body + received, request->content_len - received);
+        if (count <= 0) {
+            return reject(request, "400 Bad Request", "The relay command was incomplete.");
+        }
+        received += count;
+    }
+    bool on;
+    if (!relay_command_parse(body, received, &on)) {
+        return reject(request, "400 Bad Request", "Send true or false to set the relay state.");
+    }
+    if (kitchen_relay_set(on) != ESP_OK) {
+        return reject(request, "500 Internal Server Error", "The relay state could not be changed.");
+    }
+    const char *response = kitchen_relay_is_on() ? "{\"on\":true}" : "{\"on\":false}";
     httpd_resp_set_type(request, "application/json");
     httpd_resp_set_hdr(request, "Cache-Control", "no-store");
     return httpd_resp_send(request, response, strlen(response));
@@ -247,6 +286,7 @@ esp_err_t ota_server_start(void)
     const httpd_uri_t handlers[] = {
         {.uri = "/", .method = HTTP_GET, .handler = page_handler},
         {.uri = "/status", .method = HTTP_GET, .handler = status_handler},
+        {.uri = "/relay", .method = HTTP_POST, .handler = relay_handler},
         {.uri = "/update", .method = HTTP_POST, .handler = upload_handler},
     };
     for (size_t i = 0; i < sizeof(handlers) / sizeof(handlers[0]); ++i) {
@@ -256,7 +296,7 @@ esp_err_t ota_server_start(void)
         }
     }
 
-    ESP_LOGI(TAG, "Update page is ready on port 80. Firmware version: %s.",
+    ESP_LOGI(TAG, "Controller and OTA tabs are ready on port 80. Firmware version: %s.",
              esp_ota_get_app_description()->version);
     return ESP_OK;
 }
