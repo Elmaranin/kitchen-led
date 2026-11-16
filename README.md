@@ -14,7 +14,8 @@ It controls four independent WS2812 LED lines and one active-high relay output.
 
 Wi-Fi and OTA updates have been tested on the board.
 Wi-Fi credentials are configured at build time.
-The LED and relay APIs are available in firmware; external control commands and effects are not implemented yet.
+The LED and relay APIs and an optional GPIO5 test effect are available in firmware.
+External control commands are not implemented yet.
 Automatic rollback after faulty firmware is not implemented yet.
 
 ## Documentation

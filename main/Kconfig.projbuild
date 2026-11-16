@@ -33,6 +33,14 @@ config KITCHEN_AP_PASSWORD
 
 endmenu
 
+config KITCHEN_TEST_EFFECT
+    bool "Run the GPIO5 LED test effect"
+    default n
+    help
+        The controller runs a dim red, green, and blue chase on line 2.
+        Set the line 2 GPIO to 5 and its LED count to match the test strip.
+        The other LED lines stay black and the relay stays off.
+
 config KITCHEN_LINE_1_GPIO
     int "Line 1 GPIO"
     default 4
