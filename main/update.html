@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kitchen LED firmware</title>
+<link rel="icon" href="data:,">
+<style>
+body{font:17px system-ui,sans-serif;max-width:36rem;margin:3rem auto;padding:0 1.2rem;color:#202820;background:#f6f8f4}
+form{display:grid;gap:1rem;background:white;padding:1.5rem;border:1px solid #d5ddd0;border-radius:12px}
+label{display:grid;gap:.4rem}input,button{font:inherit;padding:.65rem}button{background:#285c35;color:white;border:0;border-radius:6px;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}#message{white-space:pre-wrap;overflow-wrap:anywhere}
+</style>
+<h1>Kitchen LED firmware</h1>
+<p id="status">Reading controller status…</p>
+<form id="update">
+<label>OTA access token<input id="token" type="password" autocomplete="off" required></label>
+<label>Firmware file<input id="firmware" type="file" accept=".bin" required></label>
+<button id="submit">Upload and restart</button>
+</form>
+<p id="message" role="status"></p>
+<p>Keep the controller powered during the update. Reconnect to its Wi-Fi if it starts the fallback access point.</p>
+<script>
+const statusText = document.getElementById('status');
+const message = document.getElementById('message');
+const button = document.getElementById('submit');
+async function refresh() {
+  const response = await fetch('/status', {cache: 'no-store'});
+  if (!response.ok) throw new Error('Could not read controller status.');
+  const status = await response.json();
+  statusText.textContent = `Version ${status.version} · Firmware slot ${status.slot}`;
+  return status;
+}
+refresh().catch(error => { statusText.textContent = error.message; });
+document.getElementById('update').addEventListener('submit', async event => {
+  event.preventDefault();
+  button.disabled = true;
+  try {
+    const before = await refresh();
+    const file = document.getElementById('firmware').files[0];
+    message.textContent = 'Uploading firmware. Keep this page open…';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 150000);
+    let response;
+    try {
+      response = await fetch('/update', {
+        method: 'POST',
+        headers: {'Authorization': 'Bearer ' + document.getElementById('token').value.trim(),
+                  'Content-Type': 'application/octet-stream'},
+        body: file,
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+    const result = await response.text();
+    if (!response.ok) throw new Error(result);
+    document.getElementById('token').value = '';
+    message.textContent = result + '\nWaiting for the controller to restart…';
+    for (let attempt = 0; attempt < 45; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      try {
+        const after = await refresh();
+        if (!after.reboot_pending && after.slot !== before.slot) {
+          message.textContent = `Update complete. Version ${after.version} is running.`;
+          return;
+        }
+      } catch (_) {}
+    }
+    message.textContent = 'The upload was accepted, but the restart could not be confirmed. Reconnect and refresh this page.';
+  } catch (error) {
+    message.textContent = error.name === 'AbortError'
+      ? 'The upload timed out. Reconnect and check the controller status before trying again.'
+      : error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+</script>
+</html>

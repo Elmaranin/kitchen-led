@@ -1,0 +1,76 @@
+menu "Kitchen LED controller"
+
+menu "Wi-Fi"
+
+config KITCHEN_WIFI_SSID
+    string "Station SSID"
+    default ""
+    help
+        The controller starts the fallback AP immediately if this value is empty.
+        The SSID can contain at most 32 bytes.
+
+config KITCHEN_WIFI_PASSWORD
+    string "Station password"
+    default ""
+    help
+        Leave this value empty for an open network.
+        Password-protected networks must support WPA2.
+
+config KITCHEN_WIFI_TIMEOUT_SECONDS
+    int "Station connection timeout in seconds"
+    default 30
+    range 5 300
+    help
+        The controller starts the fallback AP if it cannot obtain an IP address
+        within this interval. The same timeout applies after a connection loss.
+
+config KITCHEN_AP_PASSWORD
+    string "Fallback AP password"
+    default "kitchen-led-setup"
+    help
+        The password must contain 8 to 63 bytes.
+        The AP name is kitchen-led- followed by the last three MAC address bytes.
+
+endmenu
+
+config KITCHEN_LINE_1_GPIO
+    int "Line 1 GPIO"
+    default 4
+    range 4 14
+
+config KITCHEN_LINE_2_GPIO
+    int "Line 2 GPIO"
+    default 5
+    range 4 14
+
+config KITCHEN_LINE_3_GPIO
+    int "Line 3 GPIO"
+    default 12
+    range 4 14
+
+config KITCHEN_LINE_4_GPIO
+    int "Line 4 GPIO"
+    default 13
+    range 4 14
+
+config KITCHEN_LINE_1_LEDS
+    int "Line 1 LED count"
+    default 15
+    range 1 64
+
+config KITCHEN_LINE_2_LEDS
+    int "Line 2 LED count"
+    default 15
+    range 1 64
+
+config KITCHEN_LINE_3_LEDS
+    int "Line 3 LED count"
+    default 15
+    range 1 64
+
+config KITCHEN_LINE_4_LEDS
+    int "Line 4 LED count"
+    default 15
+    range 1 64
+
+endmenu

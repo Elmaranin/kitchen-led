@@ -1,0 +1,13 @@
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+.DS_Store
+.vscode/*
+!.vscode/tasks.json
+.idea/
+__pycache__/
+*.pyc
+.secrets/
+.local/
+.playwright-mcp/

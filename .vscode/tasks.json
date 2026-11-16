@@ -1,0 +1,75 @@
+{
+    "version": "2.0.0",
+    "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+            "IDF_PATH": "/tmp/kitchen-led-esp8266-sdk",
+            "IDF_PYTHON_ENV_PATH": "/tmp/kitchen-led-venv",
+            "PATH": "/tmp/kitchen-led-venv/bin:/tmp/kitchen-led-toolchain/xtensa-lx106-elf/bin:${env:PATH}"
+        }
+    },
+    "tasks": [
+        {
+            "label": "Build firmware",
+            "type": "process",
+            "command": "/tmp/kitchen-led-venv/bin/python",
+            "args": [
+                "/tmp/kitchen-led-esp8266-sdk/tools/idf.py",
+                "-B", "build/verified",
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "Flash firmware (USB)",
+            "type": "process",
+            "command": "/tmp/kitchen-led-venv/bin/python",
+            "args": [
+                "/tmp/kitchen-led-esp8266-sdk/tools/idf.py",
+                "-B", "build/verified",
+                "-p", "${input:serialPort}",
+                "-b", "57600",
+                "flash"
+            ],
+            "dependsOn": "Build firmware",
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "Flash firmware (OTA)",
+            "type": "process",
+            "command": "/tmp/kitchen-led-venv/bin/python",
+            "args": [
+                "-u",
+                "${workspaceFolder}/tools/ota.py",
+                "--build",
+                "${input:otaHost}",
+                "${workspaceFolder}/build/verified/kitchen_led.bin"
+            ],
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "focus": true,
+                "panel": "dedicated",
+                "clear": true
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "serialPort",
+            "type": "promptString",
+            "description": "ESP8266 USB serial port",
+            "default": "/dev/cu.usbserial-210"
+        },
+        {
+            "id": "otaHost",
+            "type": "promptString",
+            "description": "Controller IP address or hostname",
+            "default": "192.168.1.75"
+        }
+    ]
+}
