@@ -16,5 +16,7 @@ esp_err_t kitchen_led_set_pixel(size_t line, size_t pixel,
                                uint8_t red, uint8_t green, uint8_t blue);
 esp_err_t kitchen_led_fill(size_t line, uint8_t red, uint8_t green, uint8_t blue);
 esp_err_t kitchen_led_show(void);
+esp_err_t kitchen_led_blackout(void);
+uint32_t kitchen_led_late_frames(void);
 esp_err_t kitchen_relay_set(bool on);
 bool kitchen_relay_is_on(void);

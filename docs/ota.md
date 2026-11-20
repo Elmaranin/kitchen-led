@@ -13,6 +13,16 @@ Paste the token from `.secrets/ota_token.txt`, choose `kitchen_led.bin`, and sel
 The page shows the current version and firmware slot, then checks them again after reboot.
 The token stays in the page only until the upload succeeds; the page does not save it in browser storage.
 
+The **Reboot controller** button restarts the current firmware without uploading a file.
+Enter the OTA access token above before selecting it.
+The page waits for a new boot identifier to confirm the restart.
+The relay starts off, and the LED effect returns to 1× speed and 6% brightness.
+The token is cleared after the restart request is accepted.
+
+`POST /reboot` requires the same Bearer token as `POST /update` and an empty request body.
+It returns `{"reboot_pending":true}` and schedules a restart after one second.
+`GET /status` includes a `boot_id` string that changes on each boot.
+
 You can also upload from the command line:
 
 ```sh
@@ -27,7 +37,7 @@ The uploader reads the local token file and confirms that the controller restart
 To build a version that is easy to distinguish during a demonstration:
 
 ```sh
-idf.py -B build/verified -D PROJECT_VER=0.3.0 build
+idf.py -B build/verified -D PROJECT_VER=0.3.2 build
 python3 tools/ota.py CONTROLLER_IP build/verified/kitchen_led.bin
 ```
 

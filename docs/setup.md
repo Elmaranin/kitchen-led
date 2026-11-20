@@ -44,7 +44,7 @@ idf.py -B build/verified -p /dev/cu.YOUR_SERIAL_PORT -b 57600 flash monitor
 ```
 
 Set the pins and LED counts under **Kitchen LED controller** in `menuconfig`.
-Each line supports 1–64 LEDs. Use four distinct pins from GPIO4, GPIO5, GPIO12, and GPIO13.
+Each line supports 1–144 LEDs. Use four distinct pins from GPIO4, GPIO5, GPIO12, and GPIO13.
 GPIO14 is reserved for the relay, and GPIO16 is reserved for the blue LED indicator.
 The application rejects flash pins and duplicate pins during initialization.
 Keep the CPU at 80 MHz and power management disabled, as set in `sdkconfig.defaults`.

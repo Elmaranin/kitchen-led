@@ -13,9 +13,9 @@ h1{font-size:1.8rem;line-height:1.2;margin:0 0 .4rem;letter-spacing:-.04em}h2{fo
 p{margin:.4rem 0 0}.muted{color:#647168;font-size:.9rem}.connection{font-size:.8rem;white-space:nowrap;padding:.35rem .7rem;border-radius:2rem;background:#e7ebe5;color:#58645c}
 .connection[data-state=connected]{background:#e2efdf;color:#315d36}
 .tabs{display:flex;gap:.4rem;border-bottom:1px solid #d9e0d5;margin-bottom:1.5rem;padding-bottom:.7rem}
-button,input{font:inherit}button{cursor:pointer}.tab{border:0;border-radius:.5rem;padding:.6rem 1.2rem;background:transparent;color:#647168;font-weight:600}
+button,input,select{font:inherit}button{cursor:pointer}.tab{border:0;border-radius:.5rem;padding:.6rem 1.2rem;background:transparent;color:#647168;font-weight:600}
 .tab[aria-selected=true]{background:#e1ebdd;color:#274d2e}.tab:hover{background:#e8ede5}
-button:focus-visible,input:focus-visible{outline:3px solid #68a66d;outline-offset:4px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #68a66d;outline-offset:4px}
 .card{background:#fff;border:1px solid #dbe2d7;border-radius:1rem;padding:1.5rem;box-shadow:0 4px 16px #243d2410}
 .relay-row{display:flex;align-items:center;justify-content:space-between;gap:1.5rem}.relay-label{display:flex;align-items:center;gap:.6rem}
 .state{font-size:.8rem;color:#637166;background:#eef1eb;padding:.1rem .55rem;border-radius:1rem}.state[data-on=true]{color:#315d36;background:#e2efdf}
@@ -23,8 +23,12 @@ button:focus-visible,input:focus-visible{outline:3px solid #68a66d;outline-offse
 .thumb{display:block;width:28px;height:28px;border-radius:50%;background:white;box-shadow:0 1px 4px #0003;transition:transform .15s}
 .switch[aria-checked=true]{background:#386b40}.switch[aria-checked=true] .thumb{transform:translateX(28px)}
 button:disabled{cursor:not-allowed;opacity:.5}form{display:grid;gap:1.1rem;margin-top:1.4rem}label{display:grid;gap:.4rem;font-size:.9rem;font-weight:600}
-input{min-width:0;width:100%;padding:.65rem;border:1px solid #ccd6c7;border-radius:.45rem;background:#fcfdfb;font-weight:400}
+input,select{min-width:0;width:100%;padding:.65rem;border:1px solid #ccd6c7;border-radius:.45rem;background:#fcfdfb;font-weight:400}
 .primary{justify-self:start;background:#315f39;color:white;border:0;border-radius:.5rem;padding:.7rem 1rem;font-weight:600}
+.line-buttons{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}.line-buttons button{border:1px solid #ccd6c7;border-radius:.5rem;background:#fcfdfb;padding:.6rem .8rem;color:#315f39}.line-buttons button[aria-pressed=true]{background:#315f39;color:white}
+.card+.card{margin-top:1rem}.effect-controls{display:grid;gap:1rem;margin-top:1.2rem}
+.effect-controls label span{display:flex;justify-content:space-between;gap:1rem}.effect-controls input{padding:.5rem 0;accent-color:#386b40}
+input:disabled{opacity:.5}output{font-variant-numeric:tabular-nums}
 .message{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.9rem;color:#435748}.message:not(:empty){margin-top:1rem}
 [hidden]{display:none!important}footer{margin-top:1.5rem}@media(max-width:450px){body{padding-top:1.75rem}header{align-items:flex-start}.connection{margin-top:.15rem}.card{padding:1.2rem}}
 @media(prefers-reduced-motion:reduce){.switch,.thumb{transition:none}}
@@ -47,6 +51,43 @@ input{min-width:0;width:100%;padding:.65rem;border:1px solid #ccd6c7;border-radi
 </div>
 <p id="controller-message" class="message" role="status"></p>
 </div>
+<div class="card">
+<h2>LED effect</h2>
+<p class="muted">Speed and brightness apply to all four lines.</p>
+<div class="effect-controls">
+<label for="effect-speed"><span>Speed factor <output id="speed-value" for="effect-speed">1.00×</output></span>
+<input id="effect-speed" type="range" min="25" max="2000" step="1" value="100" disabled></label>
+<label for="effect-brightness"><span>Brightness <output id="brightness-value" for="effect-brightness">6%</output></span>
+<input id="effect-brightness" type="range" min="0" max="100" step="1" value="6" disabled></label>
+</div>
+<p class="muted">Changes apply when you release a slider. Starts at 1× speed and 6% brightness after a reboot.</p>
+<p id="effect-message" class="message" role="status"></p>
+<p id="led-timing" class="muted"></p>
+</div>
+<div class="card">
+<h2>Define lines</h2>
+<p class="muted">Light one whole strip in a steady color. The other strips turn off. Show all restores the chases.</p>
+<div class="line-buttons" role="group" aria-label="Identify LED lines">
+<button type="button" data-line="1" aria-pressed="false" disabled>Line 1 · GPIO4</button>
+<button type="button" data-line="2" aria-pressed="false" disabled>Line 2 · GPIO5</button>
+<button type="button" data-line="3" aria-pressed="false" disabled>Line 3 · GPIO12</button>
+<button type="button" data-line="4" aria-pressed="false" disabled>Line 4 · GPIO13</button>
+<button type="button" data-line="0" aria-pressed="true" disabled>Show all</button>
+</div>
+<label for="test-color">Test color
+<select id="test-color" disabled>
+<option value="0">Line colors</option>
+<option value="1">Red</option>
+<option value="2">Green</option>
+<option value="3">Blue</option>
+<option value="4">White</option>
+<option value="5">Yellow</option>
+<option value="6">Cyan</option>
+<option value="7">Magenta</option>
+</select></label>
+<p class="muted">The test color applies to the visible lines. Choose Line colors to restore their identification colors.</p>
+<p id="define-message" class="message" role="status"></p>
+</div>
 </section>
 <section id="ota-panel" role="tabpanel" aria-labelledby="ota-tab" hidden>
 <div class="card">
@@ -59,6 +100,12 @@ input{min-width:0;width:100%;padding:.65rem;border:1px solid #ccd6c7;border-radi
 </form>
 <p id="message" class="message" role="status"></p>
 </div>
+<div class="card">
+<h2>Restart controller</h2>
+<p class="muted">Uses the OTA access token above. The relay starts off and LED settings return to their defaults.</p>
+<p><button class="primary" id="reboot" type="button" disabled>Reboot controller</button></p>
+<p id="reboot-message" class="message" role="status"></p>
+</div>
 <footer class="muted">Keep the controller powered during the update. Reconnect to its Wi-Fi if it starts the fallback access point.</footer>
 </section>
 <script>
@@ -67,13 +114,26 @@ const connection = document.getElementById('connection');
 const message = document.getElementById('message');
 const controllerMessage = document.getElementById('controller-message');
 const button = document.getElementById('submit');
+const rebootButton = document.getElementById('reboot');
+const rebootMessage = document.getElementById('reboot-message');
 const relaySwitch = document.getElementById('relay-switch');
 const relayState = document.getElementById('relay-state');
+const effectSpeed = document.getElementById('effect-speed');
+const effectBrightness = document.getElementById('effect-brightness');
+const effectMessage = document.getElementById('effect-message');
+const testColor = document.getElementById('test-color');
+const lineButtons = [...document.querySelectorAll('[data-line]')];
+let defineLine = 0;
 const tabs = [...document.querySelectorAll('[role="tab"]')];
 let online = false;
 let relayOn = false;
 let relayBusy = false;
+let effectBusy = false;
+let effectEnabled = false;
+let effectDirty = false;
+let effectRevision = 0;
 let updating = false;
+let restarting = false;
 let rebootPending = false;
 
 function selectTab(tab, focus = false) {
@@ -101,9 +161,14 @@ for (const tab of tabs) {
 if (location.hash === '#ota') selectTab(document.getElementById('ota-tab'));
 
 function updateAvailability() {
-  relaySwitch.disabled = !online || relayBusy || updating || rebootPending;
-  button.disabled = !online || relayBusy || updating || rebootPending;
-  connection.textContent = updating || rebootPending ? 'Updating…' : online ? 'Connected' : 'Offline';
+  const busy = !online || relayBusy || effectBusy || updating || restarting || rebootPending;
+  relaySwitch.disabled = busy;
+  button.disabled = busy;
+  rebootButton.disabled = busy;
+  effectSpeed.disabled = effectBrightness.disabled = busy || !effectEnabled;
+  for (const item of lineButtons) item.disabled = busy || !effectEnabled;
+  testColor.disabled = busy || !effectEnabled;
+  connection.textContent = restarting ? 'Restarting…' : updating || rebootPending ? 'Updating…' : online ? 'Connected' : 'Offline';
   connection.dataset.state = online ? 'connected' : 'offline';
 }
 function showRelay(on) {
@@ -124,12 +189,21 @@ async function requestJson(path, options = {}) {
   }
 }
 async function refresh() {
+  const revision = effectRevision;
   const status = await requestJson('/status');
   if (typeof status.relay_on !== 'boolean') throw new Error('The device firmware does not support relay controls.');
   const wasOnline = online;
   online = true;
   rebootPending = status.reboot_pending;
   showRelay(status.relay_on);
+  effectEnabled = status.effect_enabled === true;
+  document.getElementById('led-timing').textContent = Number.isInteger(status.led_late_frames)
+    ? 'Frames resent after a timing delay: ' + status.led_late_frames : '';
+  if (!effectBusy && !effectDirty && revision === effectRevision && effectEnabled) {
+    showEffect(status);
+  }
+  if (!effectEnabled) effectMessage.textContent = 'The LED identification effect is disabled in this firmware.';
+  else if (!wasOnline) effectMessage.textContent = '';
   statusText.textContent = `Version ${status.version} · Firmware slot ${status.slot}`;
   if (!wasOnline) controllerMessage.textContent = '';
   updateAvailability();
@@ -142,8 +216,118 @@ function showConnectionError() {
 }
 refresh().catch(showConnectionError);
 setInterval(() => {
-  if (!updating && !relayBusy) refresh().catch(showConnectionError);
+  if (!updating && !restarting && !relayBusy && !effectBusy) refresh().catch(showConnectionError);
 }, 5000);
+
+rebootButton.addEventListener('click', async () => {
+  if (rebootButton.disabled) return;
+  const token = document.getElementById('token');
+  if (!token.value.trim()) {
+    rebootMessage.textContent = 'Enter the OTA access token above to restart the controller.';
+    token.focus();
+    return;
+  }
+  restarting = true;
+  rebootMessage.textContent = 'Requesting restart…';
+  updateAvailability();
+  let accepted = false;
+  try {
+    const before = await refresh();
+    if (typeof before.boot_id !== 'string') throw new Error('This firmware does not support restart confirmation.');
+    const result = await requestJson('/reboot', {
+      method: 'POST',
+      headers: {'Authorization': 'Bearer ' + token.value.trim()}
+    });
+    if (result.reboot_pending !== true) throw new Error('The controller did not confirm the restart request.');
+    accepted = true;
+    token.value = '';
+    rebootPending = true;
+    rebootMessage.textContent = 'Restarting. Waiting for the controller…';
+    const deadline = Date.now() + 90000;
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      try {
+        const after = await refresh();
+        if (!after.reboot_pending && after.boot_id !== before.boot_id) {
+          rebootMessage.textContent = 'Restart complete.';
+          return;
+        }
+      } catch (_) {}
+    }
+    rebootMessage.textContent = 'The restart was accepted, but reconnection could not be confirmed. Reconnect and refresh this page.';
+  } catch (error) {
+    rebootMessage.textContent = error.name === 'AbortError'
+      ? 'The request timed out. Check the controller status before trying again.'
+      : error.message;
+  } finally {
+    restarting = false;
+    if (!accepted) {
+      try { await refresh(); } catch (_) { online = false; }
+    }
+    updateAvailability();
+  }
+});
+
+function showEffect(settings) {
+  defineLine = settings.define_line || 0;
+  testColor.value = String(settings.test_color || 0);
+  for (const item of lineButtons) item.setAttribute('aria-pressed', String(Number(item.dataset.line) === defineLine));
+  document.getElementById('define-message').textContent = defineLine ? 'Showing only line ' + defineLine + '.' : 'All four lines are visible.';
+  effectSpeed.value = settings.speed_percent;
+  effectBrightness.value = settings.brightness;
+  showEffectValues();
+}
+function showEffectValues() {
+  const speed = (Number(effectSpeed.value) / 100).toFixed(2) + '×';
+  const brightness = effectBrightness.value + '%';
+  document.getElementById('speed-value').textContent = speed;
+  document.getElementById('brightness-value').textContent = brightness;
+  effectSpeed.setAttribute('aria-valuetext', speed);
+  effectBrightness.setAttribute('aria-valuetext', brightness);
+}
+for (const slider of [effectSpeed, effectBrightness]) {
+  slider.addEventListener('input', () => {
+    effectDirty = true;
+    showEffectValues();
+  });
+  slider.addEventListener('change', () => {
+    if (!slider.disabled) saveEffect(defineLine);
+  });
+}
+for (const item of lineButtons) {
+  item.addEventListener('click', () => {
+    if (!item.disabled) saveEffect(Number(item.dataset.line));
+  });
+}
+
+testColor.addEventListener('change', () => {
+  if (!testColor.disabled) saveEffect(defineLine);
+});
+
+async function saveEffect(selectedLine) {
+  effectBusy = true;
+  effectRevision++;
+  effectMessage.textContent = 'Applying…';
+  updateAvailability();
+  try {
+    const result = await requestJson('/effect', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({speed_percent: Number(effectSpeed.value), brightness: Number(effectBrightness.value), define_line: selectedLine, test_color: Number(testColor.value)})
+    });
+    showEffect(result);
+    effectMessage.textContent = 'Applied.';
+  } catch (error) {
+    effectDirty = false;
+    effectBusy = false;
+    try { await refresh(); } catch (_) { online = false; }
+    effectMessage.textContent = 'Could not change the effect. Check the connection and try again.';
+  } finally {
+    effectDirty = false;
+    effectBusy = false;
+    updateAvailability();
+  }
+}
 
 relaySwitch.addEventListener('click', async () => {
   if (relaySwitch.disabled) return;

@@ -1,4 +1,5 @@
 #include "kitchen_led.h"
+#include <string.h>
 
 #include "sdkconfig.h"
 #include "driver/gpio.h"
@@ -28,7 +29,33 @@ static uint32_t output_mask;
 static bool initialized;
 static bool relay_on;
 
-void ws2812_write_parallel(const uint32_t *masks, size_t bits, uint32_t pins);
+static uint32_t late_frames;
+static bool holding_black;
+
+static const uint8_t swapped_lines = 0
+#ifdef CONFIG_KITCHEN_LINE_1_SWAP_RG
+    | (1U << 0)
+#endif
+#ifdef CONFIG_KITCHEN_LINE_2_SWAP_RG
+    | (1U << 1)
+#endif
+#ifdef CONFIG_KITCHEN_LINE_3_SWAP_RG
+    | (1U << 2)
+#endif
+#ifdef CONFIG_KITCHEN_LINE_4_SWAP_RG
+    | (1U << 3)
+#endif
+    ;
+
+uint32_t ws2812_write_parallel(const uint32_t *masks, size_t bits, uint32_t pins);
+
+uint32_t kitchen_led_late_frames(void)
+{
+    portENTER_CRITICAL();
+    uint32_t count = late_frames;
+    portEXIT_CRITICAL();
+    return count;
+}
 
 esp_err_t kitchen_led_init(void)
 {
@@ -113,8 +140,18 @@ esp_err_t kitchen_led_set_pixel(size_t line, size_t pixel,
     if (line >= KITCHEN_LED_LINES || pixel >= counts[line]) {
         return ESP_ERR_INVALID_ARG;
     }
+    if (swapped_lines & (1U << line)) {
+        uint8_t saved_red = red;
+        red = green;
+        green = saved_red;
+    }
+#ifdef CONFIG_KITCHEN_LED_COLOR_ORDER_RGB
+    pixels[line][pixel][0] = red;
+    pixels[line][pixel][1] = green;
+#else
     pixels[line][pixel][0] = green;
     pixels[line][pixel][1] = red;
+#endif
     pixels[line][pixel][2] = blue;
     return ESP_OK;
 }
@@ -133,32 +170,68 @@ esp_err_t kitchen_led_fill(size_t line, uint8_t red, uint8_t green, uint8_t blue
     return ESP_OK;
 }
 
-esp_err_t kitchen_led_show(void)
+static void encode_frame(void)
 {
-    if (!initialized) {
-        return ESP_ERR_INVALID_STATE;
-    }
     for (size_t pixel = 0; pixel < MAX_LEDS; ++pixel) {
         for (size_t channel = 0; channel < 3; ++channel) {
+            uint32_t *masks = &zero_masks[pixel * 24 + channel * 8];
             for (unsigned bit = 0; bit < 8; ++bit) {
-                uint32_t mask = 0;
-                for (size_t line = 0; line < KITCHEN_LED_LINES; ++line) {
-                    if (pixel >= counts[line] ||
-                        !(pixels[line][pixel][channel] & (0x80U >> bit))) {
-                        mask |= 1U << pins[line];
-                    }
+                masks[bit] = output_mask;
+            }
+            for (size_t line = 0; line < KITCHEN_LED_LINES; ++line) {
+                uint8_t value = pixels[line][pixel][channel];
+                if (value == 0) continue;
+                uint32_t pin_mask = 1U << pins[line];
+                for (unsigned bit = 0; bit < 8; ++bit) {
+                    if (value & (0x80U >> bit)) masks[bit] &= ~pin_mask;
                 }
-                zero_masks[pixel * 24 + channel * 8 + bit] = mask;
             }
         }
     }
 
+}
+
+static bool send_frame(void)
+{
     /* The low interval resets the LEDs before and after each frame. */
     ets_delay_us(300);
-    portENTER_CRITICAL();
-    ws2812_write_parallel(zero_masks, MAX_LEDS * 24, output_mask);
-    portEXIT_CRITICAL();
-    ets_delay_us(300);
+    for (unsigned attempt = 0; attempt < 2; ++attempt) {
+        /* The SDK defers Wi-Fi MAC interrupts here and keeps the watchdog timer enabled. */
+        vPortETSIntrLock();
+        uint32_t peak_cycles = ws2812_write_parallel(zero_masks, MAX_LEDS * 24, output_mask);
+        vPortETSIntrUnlock();
+        /* At 80 MHz, 48 cycles give the CPU 600 ns to reach the zero-bit clear. */
+        bool late = peak_cycles >= 48;
+        if (late && attempt == 0) {
+            portENTER_CRITICAL();
+            ++late_frames;
+            portEXIT_CRITICAL();
+        }
+        ets_delay_us(300);
+        if (!late) return true;
+    }
+    return false;
+}
+
+esp_err_t kitchen_led_show(void)
+{
+    if (!initialized) return ESP_ERR_INVALID_STATE;
+    holding_black = false;
+    encode_frame();
+    send_frame();
+    return ESP_OK;
+}
+
+esp_err_t kitchen_led_blackout(void)
+{
+    if (!initialized) return ESP_ERR_INVALID_STATE;
+    memset(pixels, 0, sizeof(pixels));
+    if (!holding_black) {
+        for (size_t bit = 0; bit < MAX_LEDS * 24; ++bit) {
+            zero_masks[bit] = output_mask;
+        }
+        holding_black = send_frame();
+    }
     return ESP_OK;
 }
 

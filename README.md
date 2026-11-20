@@ -5,20 +5,22 @@ It controls four independent WS2812 LED lines and one active-high relay output.
 
 ## Features
 
-- Each LED line defaults to 15 LEDs. The LED counts and output pins are configurable.
+- Each LED line defaults to 36 LEDs. The LED counts and output pins are configurable.
 - The controller starts with all LEDs black and the relay off.
 - The relay uses GPIO14, and the onboard blue LED on GPIO16 indicates when it is on.
-- The web interface has a Controller tab with a relay switch and a separate OTA tab.
+- The Controller tab provides a relay switch, LED speed and brightness, line identification, and test colors.
+- The OTA tab provides firmware uploads and a reboot button.
 - Wi-Fi starts in station mode and falls back to an access point if it cannot obtain an IP address.
 - mDNS provides the local address `http://kitchen-led.local/`.
 - Firmware updates work through a web page or the CLI, using two OTA slots and an access token.
 
 ## Current status
 
-Wi-Fi and OTA updates have been tested on the board.
+Wi-Fi, OTA updates, and four 36-pixel LED lines have been tested on the board.
+The installed 74HCT125D buffer converts the controller's 3.3 V data signals to 5 V for the LED strips.
 Wi-Fi credentials are configured at build time.
-The LED and relay APIs and an optional GPIO5 test effect are available in firmware.
-The web interface controls the relay. LED line controls and scheduling are not implemented yet.
+The LED and relay APIs and an optional four-line identification effect are available in firmware.
+The web interface controls the relay and the optional LED identification effect. Scheduling is not implemented yet.
 Automatic rollback after faulty firmware is not implemented yet.
 
 ## Documentation

@@ -15,6 +15,11 @@ These tests check secret preservation, credential validation, and configuration 
 They also compile host tests for relay commands and the GPIO driver using hardware stubs.
 The relay tests cover default-off startup, explicit on/off commands, invalid payloads, and GPIO write failures.
 They also check the blue LED's inverse GPIO levels and reject LED-line configurations that use the relay pin.
+The 144-pixel tests check full-frame size, RGB and GRB byte encoding, and out-of-range pixel rejection.
+These host tests do not validate the physical WS2812 pulse waveform.
+The effect control tests use cJSON from `IDF_PATH`, or `/tmp/kitchen-led-esp8266-sdk` if it is not set.
+They check command validation, unchanged settings after rejection, brightness scaling, and speed limits.
+They are skipped if the SDK cJSON sources or a host C compiler are unavailable.
 The firmware build checks the SDK integration. Wi-Fi and OTA also need testing on the board.
 
 ## Hardware verification
@@ -32,5 +37,11 @@ The live test exposed two compatibility issues that the application now handles.
 The SDK's HTTP receiver does not reliably classify socket timeouts, so the uploader uses a receive override based on `errno`.
 The ESP8266 image stores its application descriptor at the start of the read-only data segment.
 The updater checks validated segment starts instead of assuming the descriptor is in the first segment.
+
+On 2026-11-20, firmware **0.3.18** was uploaded over Wi-Fi and verified running in `ota_1`.
+The user confirmed expected LED behavior after adding a **74HCT125D** level converter.
+The installation has four 36-pixel strips with approximately 1 m data wires.
+All four lines use RGB byte encoding with red and green swapped, which sends GRB data.
+The local suite passed all 19 tests. Earlier browser checks covered speed, brightness, line selection, color selection, and restart controls.
 
 [Project overview](../README.md)

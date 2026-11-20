@@ -2,6 +2,8 @@
 #include "ota_secret.h"
 #include "kitchen_led.h"
 #include "relay_command.h"
+#include "effect_control.h"
+#include "sdkconfig.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -24,6 +26,7 @@ static const char *TAG = "ota";
 static httpd_handle_t server;
 static esp_timer_handle_t restart_timer;
 static bool reboot_pending;
+static uint32_t boot_id;
 static char upload_buffer[1024];
 
 static int receive_upload(httpd_handle_t handle, int socket, char *buffer, size_t length, int flags)
@@ -67,11 +70,20 @@ static esp_err_t status_handler(httpd_req_t *request)
         return reject(request, "500 Internal Server Error", "The running firmware slot was not found.");
     }
 
-    char response[192];
+    effect_settings_t effect = effect_settings_get();
+#ifdef CONFIG_KITCHEN_TEST_EFFECT
+    const char *effect_enabled = "true";
+#else
+    const char *effect_enabled = "false";
+#endif
+    char response[384];
     snprintf(response, sizeof(response),
-             "{\"version\":\"%.31s\",\"slot\":\"%.15s\",\"free_heap\":%u,\"reboot_pending\":%s,\"relay_on\":%s}",
+             "{\"version\":\"%.31s\",\"slot\":\"%.15s\",\"free_heap\":%u,\"reboot_pending\":%s,\"relay_on\":%s,"
+             "\"effect_enabled\":%s,\"speed_percent\":%u,\"brightness\":%u,\"led_late_frames\":%u,\"boot_id\":\"%08x\",\"define_line\":%u,\"test_color\":%u}",
              description->version, running->label, (unsigned)esp_get_free_heap_size(),
-             reboot_pending ? "true" : "false", kitchen_relay_is_on() ? "true" : "false");
+             reboot_pending ? "true" : "false", kitchen_relay_is_on() ? "true" : "false",
+             effect_enabled, effect.speed_percent, effect.brightness,
+             (unsigned)kitchen_led_late_frames(), (unsigned)boot_id, effect.define_line, effect.test_color);
     httpd_resp_set_type(request, "application/json");
     httpd_resp_set_hdr(request, "Cache-Control", "no-store");
     return httpd_resp_send(request, response, strlen(response));
@@ -113,6 +125,45 @@ static esp_err_t relay_handler(httpd_req_t *request)
     return httpd_resp_send(request, response, strlen(response));
 }
 
+static esp_err_t effect_handler(httpd_req_t *request)
+{
+    if (reboot_pending) {
+        return reject(request, "409 Conflict", "The controller is restarting after a firmware update.");
+    }
+#ifndef CONFIG_KITCHEN_TEST_EFFECT
+    return reject(request, "409 Conflict", "The LED identification effect is disabled in this firmware.");
+#else
+    char content_type[48];
+    if (httpd_req_get_hdr_value_str(request, "Content-Type", content_type, sizeof(content_type)) != ESP_OK ||
+        strncasecmp(content_type, "application/json", 16) != 0 ||
+        (content_type[16] != '\0' && content_type[16] != ';')) {
+        return reject(request, "415 Unsupported Media Type", "Effect commands require application/json.");
+    }
+    char body[96];
+    if (request->content_len == 0 || request->content_len >= sizeof(body)) {
+        return reject(request, "400 Bad Request", "The effect command is empty or too large.");
+    }
+    size_t received = 0;
+    while (received < request->content_len) {
+        int count = httpd_req_recv(request, body + received, request->content_len - received);
+        if (count <= 0) {
+            return reject(request, "400 Bad Request", "The effect command was incomplete.");
+        }
+        received += count;
+    }
+    effect_settings_t settings;
+    if (!effect_settings_parse(body, received, &settings) || !effect_settings_set(settings)) {
+        return reject(request, "400 Bad Request", "Send integer speed_percent (25 to 2000) and brightness (0 to 100), with optional define_line (0 to 4) and test_color (0 to 7).");
+    }
+    char response[96];
+    snprintf(response, sizeof(response), "{\"speed_percent\":%u,\"brightness\":%u,\"define_line\":%u,\"test_color\":%u}",
+             settings.speed_percent, settings.brightness, settings.define_line, settings.test_color);
+    httpd_resp_set_type(request, "application/json");
+    httpd_resp_set_hdr(request, "Cache-Control", "no-store");
+    return httpd_resp_send(request, response, strlen(response));
+#endif
+}
+
 static bool authorized(httpd_req_t *request)
 {
     static const char expected[] = "Bearer " KITCHEN_OTA_TOKEN;
@@ -126,6 +177,29 @@ static bool authorized(httpd_req_t *request)
         difference |= (unsigned char)supplied[i] ^ (unsigned char)expected[i];
     }
     return difference == 0;
+}
+
+static esp_err_t reboot_handler(httpd_req_t *request)
+{
+    if (!authorized(request)) {
+        return reject(request, "401 Unauthorized", "The OTA access token is missing or invalid.");
+    }
+    if (reboot_pending) {
+        return reject(request, "409 Conflict", "The controller is already restarting.");
+    }
+    if (request->content_len != 0) {
+        return reject(request, "400 Bad Request", "The reboot request must have an empty body.");
+    }
+    reboot_pending = true;
+    if (esp_timer_start_once(restart_timer, 1000000) != ESP_OK) {
+        reboot_pending = false;
+        return reject(request, "500 Internal Server Error", "The restart could not be scheduled.");
+    }
+    httpd_resp_set_type(request, "application/json");
+    httpd_resp_set_hdr(request, "Cache-Control", "no-store");
+    httpd_resp_set_hdr(request, "Connection", "close");
+    const char response[] = "{\"reboot_pending\":true}";
+    return httpd_resp_send(request, response, sizeof(response) - 1);
 }
 
 static esp_err_t read_app_description(const esp_partition_t *partition,
@@ -275,6 +349,7 @@ esp_err_t ota_server_start(void)
     }
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    boot_id = esp_random();
     config.stack_size = 8192;
     config.max_open_sockets = 3;
     config.lru_purge_enable = true;
@@ -287,7 +362,9 @@ esp_err_t ota_server_start(void)
         {.uri = "/", .method = HTTP_GET, .handler = page_handler},
         {.uri = "/status", .method = HTTP_GET, .handler = status_handler},
         {.uri = "/relay", .method = HTTP_POST, .handler = relay_handler},
+        {.uri = "/effect", .method = HTTP_POST, .handler = effect_handler},
         {.uri = "/update", .method = HTTP_POST, .handler = upload_handler},
+        {.uri = "/reboot", .method = HTTP_POST, .handler = reboot_handler},
     };
     for (size_t i = 0; i < sizeof(handlers) / sizeof(handlers[0]); ++i) {
         err = httpd_register_uri_handler(server, &handlers[i]);
