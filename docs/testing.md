@@ -19,6 +19,8 @@ The 144-pixel tests check full-frame size, RGB and GRB byte encoding, and out-of
 These host tests do not validate the physical WS2812 pulse waveform.
 The effect control tests use cJSON from `IDF_PATH`, or `/tmp/kitchen-led-esp8266-sdk` if it is not set.
 They check command validation, unchanged settings after rejection, brightness scaling, and speed limits.
+They also render every effect at different times, strip lengths, and brightness levels.
+The renderer tests check reversed left-strip coordinates, deterministic frames, brightness limits, and line isolation.
 They are skipped if the SDK cJSON sources or a host C compiler are unavailable.
 The firmware build checks the SDK integration. Wi-Fi and OTA also need testing on the board.
 

@@ -16,7 +16,7 @@ The token stays in the page only until the upload succeeds; the page does not sa
 The **Reboot controller** button restarts the current firmware without uploading a file.
 Enter the OTA access token above before selecting it.
 The page waits for a new boot identifier to confirm the restart.
-The relay starts off, and the LED effect returns to 1× speed and 6% brightness.
+The relay starts off, and the controller starts Rainbow wave at 1× speed and 6% brightness.
 The token is cleared after the restart request is accepted.
 
 `POST /reboot` requires the same Bearer token as `POST /update` and an empty request body.

@@ -2,6 +2,7 @@
 #include "network.h"
 #include "ota_server.h"
 #include "effect_control.h"
+#include "led_effects.h"
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -10,14 +11,16 @@
 #include "freertos/task.h"
 
 #ifdef CONFIG_KITCHEN_TEST_EFFECT
-static void run_test_effect(void)
+static void run_led_effects(void)
 {
     static const size_t counts[KITCHEN_LED_LINES] = {
-        CONFIG_KITCHEN_LINE_1_LEDS, CONFIG_KITCHEN_LINE_2_LEDS,
-        CONFIG_KITCHEN_LINE_3_LEDS, CONFIG_KITCHEN_LINE_4_LEDS,
+        [KITCHEN_LINE_RIGHT_UP] = CONFIG_KITCHEN_LINE_1_LEDS,
+        [KITCHEN_LINE_RIGHT_DOWN] = CONFIG_KITCHEN_LINE_2_LEDS,
+        [KITCHEN_LINE_LEFT_DOWN] = CONFIG_KITCHEN_LINE_3_LEDS,
+        [KITCHEN_LINE_LEFT_UP] = CONFIG_KITCHEN_LINE_4_LEDS,
     };
-    size_t heads[KITCHEN_LED_LINES] = {0};
-    ESP_LOGI("kitchen_led", "Starting identification chases: line 1 green, line 2 blue, line 3 red, line 4 white.");
+    uint64_t animation_steps = 0;
+    ESP_LOGI("kitchen_led", "Starting grid effects on all four strips.");
     TickType_t next_frame = xTaskGetTickCount();
     unsigned tick_remainder = 0;
     unsigned pixel_remainder = 0;
@@ -30,26 +33,18 @@ static void run_test_effect(void)
         int64_t now = esp_timer_get_time();
         portEXIT_CRITICAL();
         uint64_t elapsed = previous_time ? now - previous_time : 0;
-        uint64_t steps = effect_pixel_steps(elapsed, previous_speed, &pixel_remainder);
+        animation_steps += effect_pixel_steps(elapsed, previous_speed, &pixel_remainder);
+        uint64_t phase_ms = animation_steps * 100 + pixel_remainder / 100000;
         previous_time = now;
         previous_speed = settings.speed_percent;
         uint8_t peak = effect_peak(settings);
-        for (size_t line = 0; line < KITCHEN_LED_LINES; ++line) {
-            heads[line] = (heads[line] + steps) % counts[line];
-            if (!peak) continue;
-            uint8_t rgb[3];
-            effect_rgb(settings, line, rgb);
-            ESP_ERROR_CHECK(kitchen_led_fill(line, 0, 0, 0));
-            if (settings.define_line) {
-                if (settings.define_line == line + 1) {
-                    ESP_ERROR_CHECK(kitchen_led_fill(line,
-                        rgb[0], rgb[1], rgb[2]));
+        if (peak) {
+            for (size_t line = 0; line < KITCHEN_LED_LINES; ++line) {
+                for (size_t pixel = 0; pixel < counts[line]; ++pixel) {
+                    uint8_t rgb[3];
+                    led_effect_pixel(settings, line, pixel, counts[line], phase_ms, rgb);
+                    ESP_ERROR_CHECK(kitchen_led_set_pixel(line, pixel, rgb[0], rgb[1], rgb[2]));
                 }
-                continue;
-            }
-            for (size_t tail = 0; tail < 4 && tail <= heads[line]; ++tail) {
-                ESP_ERROR_CHECK(kitchen_led_set_pixel(line, heads[line] - tail,
-                    rgb[0] >> tail, rgb[1] >> tail, rgb[2] >> tail));
             }
         }
         ESP_ERROR_CHECK(peak ? kitchen_led_show() : kitchen_led_blackout());
@@ -76,6 +71,6 @@ void app_main(void)
     ESP_ERROR_CHECK(network_start());
     ESP_ERROR_CHECK(ota_server_start());
 #ifdef CONFIG_KITCHEN_TEST_EFFECT
-    run_test_effect();
+    run_led_effects();
 #endif
 }

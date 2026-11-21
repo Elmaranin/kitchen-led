@@ -2,6 +2,7 @@
 
 This project runs on an ESP8266EX with 4 MB flash, using ESP8266 RTOS SDK v3.4.
 It controls four independent WS2812 LED lines and one active-high relay output.
+The strips form a two-by-two grid named Left up, Left down, Right down, and Right up.
 
 ## Features
 
@@ -19,8 +20,8 @@ It controls four independent WS2812 LED lines and one active-high relay output.
 Wi-Fi, OTA updates, and four 36-pixel LED lines have been tested on the board.
 The installed 74HCT125D buffer converts the controller's 3.3 V data signals to 5 V for the LED strips.
 Wi-Fi credentials are configured at build time.
-The LED and relay APIs and an optional four-line identification effect are available in firmware.
-The web interface controls the relay and the optional LED identification effect. Scheduling is not implemented yet.
+Eight LED effects are available, including rainbow, aurora, comets, embers, stars, breathing, solid color, and identification.
+Effects start at 6% brightness after boot. Scheduling is not implemented yet.
 Automatic rollback after faulty firmware is not implemented yet.
 
 ## Documentation

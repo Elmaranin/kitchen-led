@@ -41,11 +41,11 @@ config KITCHEN_AP_PASSWORD
 endmenu
 
 config KITCHEN_TEST_EFFECT
-    bool "Run the four-line LED identification test"
-    default n
+    bool "Enable LED effects and controller controls"
+    default y
     help
-        Each line runs a dim chase with a fixed identification color.
-        Lines 1, 2, 3, and 4 use green, blue, red, and white respectively.
+        The Controller tab selects grid effects, speed, brightness, and test colors.
+        The controller starts with a dim rainbow wave.
         Set each line's LED count to match the connected test strip.
         The effect does not control the relay.
 
@@ -65,58 +65,58 @@ config KITCHEN_LED_COLOR_ORDER_GRB
 endchoice
 
 config KITCHEN_LINE_1_SWAP_RG
-    bool "Swap red and green on line 1"
+    bool "Swap red and green on right up"
     default y
 
 config KITCHEN_LINE_2_SWAP_RG
-    bool "Swap red and green on line 2"
+    bool "Swap red and green on right down"
     default y
 
 config KITCHEN_LINE_3_SWAP_RG
-    bool "Swap red and green on line 3"
+    bool "Swap red and green on left down"
     default y
 
 config KITCHEN_LINE_4_SWAP_RG
-    bool "Swap red and green on line 4"
+    bool "Swap red and green on left up"
     default y
 
 config KITCHEN_LINE_1_GPIO
-    int "Line 1 GPIO"
+    int "Right up GPIO"
     default 4
     range 4 13
 
 config KITCHEN_LINE_2_GPIO
-    int "Line 2 GPIO"
+    int "Right down GPIO"
     default 5
     range 4 13
 
 config KITCHEN_LINE_3_GPIO
-    int "Line 3 GPIO"
+    int "Left down GPIO"
     default 12
     range 4 13
 
 config KITCHEN_LINE_4_GPIO
-    int "Line 4 GPIO"
+    int "Left up GPIO"
     default 13
     range 4 13
 
 config KITCHEN_LINE_1_LEDS
-    int "Line 1 LED count"
+    int "Right up LED count"
     default 36
     range 1 144
 
 config KITCHEN_LINE_2_LEDS
-    int "Line 2 LED count"
+    int "Right down LED count"
     default 36
     range 1 144
 
 config KITCHEN_LINE_3_LEDS
-    int "Line 3 LED count"
+    int "Left down LED count"
     default 36
     range 1 144
 
 config KITCHEN_LINE_4_LEDS
-    int "Line 4 LED count"
+    int "Left up LED count"
     default 36
     range 1 144
 

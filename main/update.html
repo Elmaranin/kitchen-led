@@ -25,7 +25,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 button:disabled{cursor:not-allowed;opacity:.5}form{display:grid;gap:1.1rem;margin-top:1.4rem}label{display:grid;gap:.4rem;font-size:.9rem;font-weight:600}
 input,select{min-width:0;width:100%;padding:.65rem;border:1px solid #ccd6c7;border-radius:.45rem;background:#fcfdfb;font-weight:400}
 .primary{justify-self:start;background:#315f39;color:white;border:0;border-radius:.5rem;padding:.7rem 1rem;font-weight:600}
-.line-buttons{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}.line-buttons button{border:1px solid #ccd6c7;border-radius:.5rem;background:#fcfdfb;padding:.6rem .8rem;color:#315f39}.line-buttons button[aria-pressed=true]{background:#315f39;color:white}
+.line-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin-top:1rem}.line-buttons button{border:1px solid #ccd6c7;border-radius:.5rem;background:#fcfdfb;padding:.6rem .8rem;color:#315f39}.line-buttons button[data-line="0"]{grid-column:1/-1}.line-buttons small{display:block;font-weight:400}
+.line-buttons button[aria-pressed=true]{background:#315f39;color:white}
 .card+.card{margin-top:1rem}.effect-controls{display:grid;gap:1rem;margin-top:1.2rem}
 .effect-controls label span{display:flex;justify-content:space-between;gap:1rem}.effect-controls input{padding:.5rem 0;accent-color:#386b40}
 input:disabled{opacity:.5}output{font-variant-numeric:tabular-nums}
@@ -53,28 +54,19 @@ input:disabled{opacity:.5}output{font-variant-numeric:tabular-nums}
 </div>
 <div class="card">
 <h2>LED effect</h2>
-<p class="muted">Speed and brightness apply to all four lines.</p>
-<div class="effect-controls">
-<label for="effect-speed"><span>Speed factor <output id="speed-value" for="effect-speed">1.00×</output></span>
-<input id="effect-speed" type="range" min="25" max="2000" step="1" value="100" disabled></label>
-<label for="effect-brightness"><span>Brightness <output id="brightness-value" for="effect-brightness">6%</output></span>
-<input id="effect-brightness" type="range" min="0" max="100" step="1" value="6" disabled></label>
-</div>
-<p class="muted">Changes apply when you release a slider. Starts at 1× speed and 6% brightness after a reboot.</p>
-<p id="effect-message" class="message" role="status"></p>
-<p id="led-timing" class="muted"></p>
-</div>
-<div class="card">
-<h2>Define lines</h2>
-<p class="muted">Light one whole strip in a steady color. The other strips turn off. Show all restores the chases.</p>
-<div class="line-buttons" role="group" aria-label="Identify LED lines">
-<button type="button" data-line="1" aria-pressed="false" disabled>Line 1 · GPIO4</button>
-<button type="button" data-line="2" aria-pressed="false" disabled>Line 2 · GPIO5</button>
-<button type="button" data-line="3" aria-pressed="false" disabled>Line 3 · GPIO12</button>
-<button type="button" data-line="4" aria-pressed="false" disabled>Line 4 · GPIO13</button>
-<button type="button" data-line="0" aria-pressed="true" disabled>Show all</button>
-</div>
-<label for="test-color">Test color
+<label for="effect-select">Effect
+<select id="effect-select" disabled>
+<option value="1" selected>Rainbow wave</option>
+<option value="2">Aurora</option>
+<option value="3">Twin comets</option>
+<option value="4">Ember glow</option>
+<option value="5">Twinkling stars</option>
+<option value="6">Breathing color</option>
+<option value="7">Solid color</option>
+<option value="0">Identification chase</option>
+</select></label>
+<p id="effect-description" class="muted">A rainbow flows across the grid.</p>
+<label for="test-color">Color
 <select id="test-color" disabled>
 <option value="0">Line colors</option>
 <option value="1">Red</option>
@@ -85,7 +77,28 @@ input:disabled{opacity:.5}output{font-variant-numeric:tabular-nums}
 <option value="6">Cyan</option>
 <option value="7">Magenta</option>
 </select></label>
-<p class="muted">The test color applies to the visible lines. Choose Line colors to restore their identification colors.</p>
+<p class="muted">Color applies to breathing, solid, identification, and Define lines. Other effects use their own palettes.</p>
+
+<div class="effect-controls">
+<label for="effect-speed"><span>Speed factor <output id="speed-value" for="effect-speed">1.00×</output></span>
+<input id="effect-speed" type="range" min="25" max="2000" step="1" value="100" disabled></label>
+<label for="effect-brightness"><span>Brightness <output id="brightness-value" for="effect-brightness">6%</output></span>
+<input id="effect-brightness" type="range" min="0" max="100" step="1" value="6" disabled></label>
+</div>
+<p class="muted">Changes apply when you release a slider. Starts with Rainbow wave, 1× speed, and 6% brightness after a reboot.</p>
+<p id="effect-message" class="message" role="status"></p>
+<p id="led-timing" class="muted"></p>
+</div>
+<div class="card">
+<h2>Define lines</h2>
+<p class="muted">Light one whole strip in a steady color. The other strips turn off. Show all resumes the selected effect.</p>
+<div class="line-buttons" role="group" aria-label="Identify LED positions">
+<button type="button" data-line="4" data-name="Left up" aria-pressed="false" disabled>Left up · GPIO13<small>36 ← 1</small></button>
+<button type="button" data-line="1" data-name="Right up" aria-pressed="false" disabled>Right up · GPIO4<small>1 → 36</small></button>
+<button type="button" data-line="3" data-name="Left down" aria-pressed="false" disabled>Left down · GPIO12<small>36 ← 1</small></button>
+<button type="button" data-line="2" data-name="Right down" aria-pressed="false" disabled>Right down · GPIO5<small>1 → 36</small></button>
+<button type="button" data-line="0" aria-pressed="true" disabled>Show all</button>
+</div>
 <p id="define-message" class="message" role="status"></p>
 </div>
 </section>
@@ -118,6 +131,17 @@ const rebootButton = document.getElementById('reboot');
 const rebootMessage = document.getElementById('reboot-message');
 const relaySwitch = document.getElementById('relay-switch');
 const relayState = document.getElementById('relay-state');
+const effectSelect = document.getElementById('effect-select');
+const effectDescriptions = [
+  'The original four identification chases.',
+  'A rainbow flows across the grid.',
+  'Slow curtains of green, blue, and violet.',
+  'Two colorful comets travel across the rows.',
+  'A soft, shifting orange and red glow.',
+  'Warm stars sparkle against a dark background.',
+  'The selected color gently brightens and fades.',
+  'The selected color lights all four strips.'
+];
 const effectSpeed = document.getElementById('effect-speed');
 const effectBrightness = document.getElementById('effect-brightness');
 const effectMessage = document.getElementById('effect-message');
@@ -167,7 +191,9 @@ function updateAvailability() {
   rebootButton.disabled = busy;
   effectSpeed.disabled = effectBrightness.disabled = busy || !effectEnabled;
   for (const item of lineButtons) item.disabled = busy || !effectEnabled;
-  testColor.disabled = busy || !effectEnabled;
+  effectSelect.disabled = busy || !effectEnabled;
+  const usesColor = defineLine !== 0 || [0, 6, 7].includes(Number(effectSelect.value));
+  testColor.disabled = busy || !effectEnabled || !usesColor;
   connection.textContent = restarting ? 'Restarting…' : updating || rebootPending ? 'Updating…' : online ? 'Connected' : 'Offline';
   connection.dataset.state = online ? 'connected' : 'offline';
 }
@@ -202,7 +228,7 @@ async function refresh() {
   if (!effectBusy && !effectDirty && revision === effectRevision && effectEnabled) {
     showEffect(status);
   }
-  if (!effectEnabled) effectMessage.textContent = 'The LED identification effect is disabled in this firmware.';
+  if (!effectEnabled) effectMessage.textContent = 'LED effects are disabled in this firmware.';
   else if (!wasOnline) effectMessage.textContent = '';
   statusText.textContent = `Version ${status.version} · Firmware slot ${status.slot}`;
   if (!wasOnline) controllerMessage.textContent = '';
@@ -270,9 +296,11 @@ rebootButton.addEventListener('click', async () => {
 
 function showEffect(settings) {
   defineLine = settings.define_line || 0;
+  effectSelect.value = String(settings.effect ?? 0);
+  document.getElementById('effect-description').textContent = effectDescriptions[Number(effectSelect.value)];
   testColor.value = String(settings.test_color || 0);
   for (const item of lineButtons) item.setAttribute('aria-pressed', String(Number(item.dataset.line) === defineLine));
-  document.getElementById('define-message').textContent = defineLine ? 'Showing only line ' + defineLine + '.' : 'All four lines are visible.';
+  document.getElementById('define-message').textContent = defineLine ? 'Showing only ' + lineButtons.find(item => Number(item.dataset.line) === defineLine).dataset.name + '.' : 'All four positions show the selected effect.';
   effectSpeed.value = settings.speed_percent;
   effectBrightness.value = settings.brightness;
   showEffectValues();
@@ -300,6 +328,10 @@ for (const item of lineButtons) {
   });
 }
 
+effectSelect.addEventListener('change', () => {
+  if (!effectSelect.disabled) saveEffect(0);
+});
+
 testColor.addEventListener('change', () => {
   if (!testColor.disabled) saveEffect(defineLine);
 });
@@ -313,7 +345,7 @@ async function saveEffect(selectedLine) {
     const result = await requestJson('/effect', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({speed_percent: Number(effectSpeed.value), brightness: Number(effectBrightness.value), define_line: selectedLine, test_color: Number(testColor.value)})
+      body: JSON.stringify({speed_percent: Number(effectSpeed.value), brightness: Number(effectBrightness.value), define_line: selectedLine, test_color: Number(testColor.value), effect: Number(effectSelect.value)})
     });
     showEffect(result);
     effectMessage.textContent = 'Applied.';

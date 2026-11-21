@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-set(PROJECT_VER "0.3.18" CACHE STRING "Firmware version")
+set(PROJECT_VER "0.4.0" CACHE STRING "Firmware version")
 if(NOT PROJECT_VER MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
     message(FATAL_ERROR "PROJECT_VER must use the format major.minor.patch.")
 endif()

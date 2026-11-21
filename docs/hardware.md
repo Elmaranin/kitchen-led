@@ -4,10 +4,10 @@
 
 | Output | ESP8266 GPIO | Default LED count | LED count parameter |
 | --- | --- | --- | --- |
-| LED line 1 | 4 (D2) | 36 | `CONFIG_KITCHEN_LINE_1_LEDS` |
-| LED line 2 | 5 (D1) | 36 | `CONFIG_KITCHEN_LINE_2_LEDS` |
-| LED line 3 | 12 (D6) | 36 | `CONFIG_KITCHEN_LINE_3_LEDS` |
-| LED line 4 | 13 (D7) | 36 | `CONFIG_KITCHEN_LINE_4_LEDS` |
+| Right up (line 1) | 4 (D2) | 36 | `CONFIG_KITCHEN_LINE_1_LEDS` |
+| Right down (line 2) | 5 (D1) | 36 | `CONFIG_KITCHEN_LINE_2_LEDS` |
+| Left down (line 3) | 12 (D6) | 36 | `CONFIG_KITCHEN_LINE_3_LEDS` |
+| Left up (line 4) | 13 (D7) | 36 | `CONFIG_KITCHEN_LINE_4_LEDS` |
 | Relay | 14 (D5) | N/A | N/A |
 | Blue LED (`BLUE_LED`) | 16 (D0) | N/A | N/A |
 
@@ -27,6 +27,31 @@ GPIO14 and GPIO16 are reserved for these outputs. LED lines can use GPIO4, GPIO5
 Do not connect GPIO16 to the reset pin in this project.
 
 Move the relay control wire from GPIO16/D0 to GPIO14/D5 before installing firmware with this pin mapping.
+
+## Physical layout
+
+The four 36-pixel strips lie horizontally in a two-column, two-row grid.
+The columns are approximately **1 m apart**, and the rows are approximately **50 cm apart**.
+This diagram shows the layout as viewed from the front.
+The pixel labels run from 1 at each strip's data input to 36 at its output.
+
+```text
+36 ---- Left up (line 4) ---- 1       1 ---- Right up (line 1) ---- 36
+
+36 --- Left down (line 3) --- 1       1 --- Right down (line 2) --- 36
+```
+
+| Position | Code identifier | HTTP line ID | Pixel direction from 1 to 36 |
+| --- | --- | --- | --- |
+| Left up | `KITCHEN_LINE_LEFT_UP` | 4 | Right to left |
+| Left down | `KITCHEN_LINE_LEFT_DOWN` | 3 | Right to left |
+| Right down | `KITCHEN_LINE_RIGHT_DOWN` | 2 | Left to right |
+| Right up | `KITCHEN_LINE_RIGHT_UP` | 1 | Left to right |
+
+The C API uses zero-based indices, so the physical pixels 1 and 36 have API indices 0 and 35.
+The chases follow each strip's native pixel order.
+The configuration keys retain their original line numbers so existing GPIO, count, and color settings remain valid.
+Menuconfig and the Controller tab display the position names.
 
 ## Wiring
 

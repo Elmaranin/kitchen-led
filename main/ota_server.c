@@ -79,11 +79,11 @@ static esp_err_t status_handler(httpd_req_t *request)
     char response[384];
     snprintf(response, sizeof(response),
              "{\"version\":\"%.31s\",\"slot\":\"%.15s\",\"free_heap\":%u,\"reboot_pending\":%s,\"relay_on\":%s,"
-             "\"effect_enabled\":%s,\"speed_percent\":%u,\"brightness\":%u,\"led_late_frames\":%u,\"boot_id\":\"%08x\",\"define_line\":%u,\"test_color\":%u}",
+             "\"effect_enabled\":%s,\"speed_percent\":%u,\"brightness\":%u,\"led_late_frames\":%u,\"boot_id\":\"%08x\",\"define_line\":%u,\"test_color\":%u,\"effect\":%u}",
              description->version, running->label, (unsigned)esp_get_free_heap_size(),
              reboot_pending ? "true" : "false", kitchen_relay_is_on() ? "true" : "false",
              effect_enabled, effect.speed_percent, effect.brightness,
-             (unsigned)kitchen_led_late_frames(), (unsigned)boot_id, effect.define_line, effect.test_color);
+             (unsigned)kitchen_led_late_frames(), (unsigned)boot_id, effect.define_line, effect.test_color, effect.effect);
     httpd_resp_set_type(request, "application/json");
     httpd_resp_set_hdr(request, "Cache-Control", "no-store");
     return httpd_resp_send(request, response, strlen(response));
@@ -131,7 +131,7 @@ static esp_err_t effect_handler(httpd_req_t *request)
         return reject(request, "409 Conflict", "The controller is restarting after a firmware update.");
     }
 #ifndef CONFIG_KITCHEN_TEST_EFFECT
-    return reject(request, "409 Conflict", "The LED identification effect is disabled in this firmware.");
+    return reject(request, "409 Conflict", "LED effects are disabled in this firmware.");
 #else
     char content_type[48];
     if (httpd_req_get_hdr_value_str(request, "Content-Type", content_type, sizeof(content_type)) != ESP_OK ||
@@ -153,11 +153,11 @@ static esp_err_t effect_handler(httpd_req_t *request)
     }
     effect_settings_t settings;
     if (!effect_settings_parse(body, received, &settings) || !effect_settings_set(settings)) {
-        return reject(request, "400 Bad Request", "Send integer speed_percent (25 to 2000) and brightness (0 to 100), with optional define_line (0 to 4) and test_color (0 to 7).");
+        return reject(request, "400 Bad Request", "Send integer speed_percent (25 to 2000) and brightness (0 to 100), with optional define_line (0 to 4) and test_color (0 to 7), and effect (0 to 7).");
     }
-    char response[96];
-    snprintf(response, sizeof(response), "{\"speed_percent\":%u,\"brightness\":%u,\"define_line\":%u,\"test_color\":%u}",
-             settings.speed_percent, settings.brightness, settings.define_line, settings.test_color);
+    char response[112];
+    snprintf(response, sizeof(response), "{\"speed_percent\":%u,\"brightness\":%u,\"define_line\":%u,\"test_color\":%u,\"effect\":%u}",
+             settings.speed_percent, settings.brightness, settings.define_line, settings.test_color, settings.effect);
     httpd_resp_set_type(request, "application/json");
     httpd_resp_set_hdr(request, "Cache-Control", "no-store");
     return httpd_resp_send(request, response, strlen(response));

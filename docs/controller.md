@@ -25,34 +25,53 @@ Scheduling and individual line controls are not implemented yet.
 
 ## LED effect
 
-The speed and brightness sliders control the identification chase on all four lines together.
+Select an effect on the Controller tab. Choosing an effect resumes all four strips.
+The effects follow the physical grid and account for the reversed left strips.
+The renderer uses normalized positions to coordinate movement across the rows and central gap.
+
+| Effect | Appearance | Uses the color selector |
+| --- | --- | --- |
+| Rainbow wave | A rainbow flows across the grid | No |
+| Aurora | Slow green, blue, and violet curtains | No |
+| Twin comets | Two colorful comets cross the rows | No |
+| Ember glow | A soft orange and red glow changes over time | No |
+| Twinkling stars | Warm stars fade in and out over a dark background | No |
+| Breathing color | The selected color brightens and fades | Yes |
+| Solid color | All four strips show the selected color | Yes |
+| Identification chase | Each position runs its original four-pixel chase | Yes |
+
+The speed and brightness sliders control all four strips together.
 Changes apply when you release a slider or change its value with the keyboard.
 The controller confirms each change. A page reload reads the current settings without resetting them.
 
-Speed ranges from **0.25× to 20×**. At 1×, the head advances one pixel every 100 ms.
-A 144-pixel pass takes about 14.4 seconds at 1×, 0.72 seconds at 20×, or 57.6 seconds at 0.25×.
-The head follows elapsed time. If a frame arrives late, the head can advance several pixels at once.
+Speed ranges from **0.25× to 20×** and scales animation time.
+The identification chase advances one pixel every 100 ms at 1×.
+For that chase, a 144-pixel pass takes about 14.4 seconds at 1× or 0.72 seconds at 20×.
+Animation follows elapsed time. A late frame skips forward to the current position.
 Brightness ranges from **0% to 100%**. At 0%, the controller sends black and then holds all four data pins low.
 If both transmission attempts show a timing delay, the controller tries again on the next frame.
-Raising the brightness resumes the chase at its current position.
+Raising the brightness resumes the animation at its current position.
 Brightness scales the RGB values; it does not limit current based on a power measurement.
-Each reboot restores **1× speed and 6% brightness**. Settings are not saved to flash.
+Each reboot restores **Rainbow wave, 1× speed, and 6% brightness**. Settings are not saved to flash.
 The relay operates independently.
 
-These controls require **Run the four-line LED identification test** to be enabled when building the firmware.
-The page disables the sliders if the effect is not enabled.
+These controls require **Enable LED effects and controller controls**, which is enabled by default in menuconfig.
+The page disables the controls if effects are disabled in the firmware.
 
 ## Define lines
 
 Use **Define lines** on the Controller tab to locate each physical strip.
 Select a line to light all 36 pixels in its identification color while the other three strips turn off.
-The buttons show the line number and GPIO.
+The buttons show each strip's position and GPIO in the same two-by-two grid as the installation.
+Left up is line 4, left down is line 3, right down is line 2, and right up is line 1.
+The left strips run from pixel 1 at the right end to pixel 36 at the left end.
+The right strips run from pixel 1 at the left end to pixel 36 at the right end.
 Brightness still applies, so use a brightness above zero to see the selected line.
-The selected strip shows a steady color. Speed applies to the chases when you select **Show all**.
-Select **Show all** to restore all four chases. A reboot also restores all four chases.
+The selected strip shows a steady color. **Show all** resumes the selected effect on all four strips.
 
-Use **Test color** to choose red, green, blue, white, yellow, cyan, or magenta.
-The chosen color applies to the visible lines in both the steady test and the chases.
+Use **Color** to choose red, green, blue, white, yellow, cyan, or magenta.
+The chosen color applies to breathing, solid color, identification, and the steady line test.
+Effects with their own palettes disable the color selector until you select a line to identify.
 Choose **Line colors** to restore the original colors. Every reboot starts with **Line colors**.
 
 ## HTTP API
@@ -73,11 +92,16 @@ Invalid or incomplete commands leave the relay unchanged.
 
 `GET /status` also includes `effect_enabled`, `speed_percent`, and `brightness`.
 It includes `define_line`, where zero shows all lines and 1 through 4 selects one line.
+IDs 1, 2, 3, and 4 select right up, right down, left down, and left up respectively.
 `POST /effect` accepts the optional integer `define_line` with the same range.
 Commands that omit this field preserve the current line selection.
 `test_color` is optional and defaults to 0 for the original line colors.
 Values 1 through 7 select red, green, blue, white, yellow, cyan, and magenta.
 Commands that omit this field preserve the current color selection.
+`effect` is optional. IDs 0 through 7 select identification, rainbow, aurora, comets, embers,
+twinkle, breathing, and solid color respectively.
+`GET /status` reports the selected effect ID.
+Commands that omit `effect` preserve the current effect selection.
 `POST /effect` requires `Content-Type: application/json` and both integer fields:
 
 ```sh

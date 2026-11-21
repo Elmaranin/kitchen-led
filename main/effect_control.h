@@ -3,12 +3,26 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "led_layout.h"
+
+typedef enum {
+    EFFECT_IDENTIFY,
+    EFFECT_RAINBOW,
+    EFFECT_AURORA,
+    EFFECT_COMETS,
+    EFFECT_EMBERS,
+    EFFECT_TWINKLE,
+    EFFECT_BREATHE,
+    EFFECT_SOLID,
+    EFFECT_COUNT,
+} led_effect_t;
 
 typedef struct {
     unsigned speed_percent;
     unsigned brightness;
     unsigned define_line;
     unsigned test_color;
+    unsigned effect;
 } effect_settings_t;
 
 effect_settings_t effect_settings_get(void);

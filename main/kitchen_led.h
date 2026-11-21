@@ -5,8 +5,8 @@
 #include <stdint.h>
 
 #include "esp_err.h"
+#include "led_layout.h"
 
-#define KITCHEN_LED_LINES 4
 #define KITCHEN_RELAY_GPIO 14
 #define BLUE_LED 16
 

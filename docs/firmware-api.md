@@ -2,11 +2,13 @@
 
 Call the API after `kitchen_led_init()` succeeds. Keep LED buffer updates and frame transmission in one task.
 Line and pixel indices start at zero. Colors use RGB values from 0 to 255.
+Use the position identifiers from `led_layout.h` to select a strip.
+The physical layout and pixel directions are recorded in the [hardware guide](hardware.md#physical-layout).
 Pixel changes are buffered until `kitchen_led_show()` sends them to the LEDs.
 
 ```c
-ESP_ERROR_CHECK(kitchen_led_fill(0, 16, 16, 16));
-ESP_ERROR_CHECK(kitchen_led_set_pixel(1, 0, 16, 0, 0));
+ESP_ERROR_CHECK(kitchen_led_fill(KITCHEN_LINE_LEFT_UP, 16, 16, 16));
+ESP_ERROR_CHECK(kitchen_led_set_pixel(KITCHEN_LINE_RIGHT_DOWN, 0, 16, 0, 0));
 ESP_ERROR_CHECK(kitchen_led_show());
 ESP_ERROR_CHECK(kitchen_relay_set(true));
 ```
@@ -19,24 +21,25 @@ The HTTP server handles relay writes in one task. Keep relay writes serialized w
 
 ## LED strip test
 
-Enable **Run the four-line LED identification test** under **Kitchen LED controller** in `menuconfig`.
+Enable **Enable LED effects and controller controls** under **Kitchen LED controller** in `menuconfig`.
+This option is enabled by default. Select **Identification chase** in the Controller tab to run the original test.
 Set each line's LED count to match the connected strip, such as **50** or **144** pixels.
 Each line defaults to 36 LEDs. The test uses each line's configured count.
 
-| Line | GPIO / board pin | Identification color |
+| Position | GPIO / board pin | Identification color |
 | --- | --- | --- |
-| 1 | GPIO4 / D2 | Green |
-| 2 | GPIO5 / D1 | Blue |
-| 3 | GPIO12 / D6 | Red |
-| 4 | GPIO13 / D7 | White |
+| Right up | GPIO4 / D2 | Green |
+| Right down | GPIO5 / D1 | Blue |
+| Left down | GPIO12 / D6 | Red |
+| Left up | GPIO13 / D7 | White |
 
-The test runs automatically after initialization. Each line keeps its assigned color throughout the chase.
-At startup, each chase moves one pixel every 100 ms with a short fading tail and 6% brightness (15 out of 255).
-The Controller tab can change the speed and brightness of all four chases through the [HTTP API](controller.md#led-effect).
+At startup, the controller runs Rainbow wave at 1× speed and 6% brightness (15 out of 255).
+The identification chase moves one pixel every 100 ms at 1×, with a short fading tail.
+The Controller tab selects effects and changes speed and brightness through the [HTTP API](controller.md#led-effect).
 The effect reads one consistent settings snapshot per frame. Only the effect task changes the LED buffers.
 The four lines share one frame transmission. The effect does not change the relay.
 Wi-Fi and OTA remain available during the effect.
-Disable the test option and rebuild to return to normal startup behavior.
+Disable the effects option and rebuild to start with the LED lines held black.
 
 ## Transmitter timing
 
@@ -52,8 +55,8 @@ With 50 LEDs per line, the parallel frame takes approximately 1.7 ms, plus those
 With 144 LEDs per line, the frame takes approximately 5 ms, plus those reset intervals.
 During the pulse train, the SDK defers Wi-Fi MAC interrupts and keeps the watchdog timer enabled.
 The reset intervals allow interrupts. Shorter lines receive black padding up to the longest line.
-The chase requests at most 50 frames per second to give Wi-Fi time between frames.
-At the maximum speed of 20×, the head moves four pixels per frame when the chase runs at 50 frames per second.
+The renderer requests at most 50 frames per second to give Wi-Fi time between frames.
+The identification chase moves four pixels per frame at 20× when it runs at 50 frames per second.
 The timing routine requires a fixed 80 MHz CPU clock.
 Its zero-pulse comparison threshold is 20 CPU cycles, or 250 ns, before branch and GPIO-write overhead.
 The timing reference is sampled before the rising edge. Actual pulse widths require measurement on the hardware.

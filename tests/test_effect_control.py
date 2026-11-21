@@ -26,7 +26,8 @@ class EffectControlTests(unittest.TestCase):
             compiled = subprocess.run(
                 ["cc", "-std=c11", "-Wall", "-Wextra", "-Werror", "-I", str(temporary),
                  "-I", str(ROOT / "main"), "-I", str(CJSON),
-                 str(ROOT / "main/effect_control.c"), str(CJSON / "cJSON.c"),
+                 str(ROOT / "main/effect_control.c"), str(ROOT / "main/led_effects.c"),
+                 str(CJSON / "cJSON.c"),
                  str(ROOT / "tests/effect_control_test.c"), "-lm", "-o", str(binary)],
                 capture_output=True, text=True)
             self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
